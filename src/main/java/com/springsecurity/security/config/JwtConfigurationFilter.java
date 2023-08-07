@@ -8,6 +8,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -19,7 +22,12 @@ import java.io.IOException;
 public class JwtConfigurationFilter extends OncePerRequestFilter {
 
     @Autowired
-    private JwtService jwtService;
+    private final JwtService jwtService;
+
+
+    // making it final because we want to use our implementation of this interface to get our user from our database
+    @Autowired
+    private final UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(
@@ -38,5 +46,10 @@ public class JwtConfigurationFilter extends OncePerRequestFilter {
 
             // extract user name email from jwt token to make a connection with database and retrieve the user
             userEmail = jwtService.extractUserName(jwt);
+
+            // if we have user email from JWT token and the also the user is not authenticated because if the user is authenticated then we no need to do this part
+            if(userEmail != null && SecurityContextHolder.getContext().getAuthentication()== null){
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+            }
     }
 }
